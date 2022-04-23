@@ -73,7 +73,7 @@ export function handleChannelClosureInitiated(
   let entity = Channel.load(source.id + ":%:" + destination.id)
 
   if (!entity) {
-    throw "Trying to close a non-existing channel, source: " + source + " destination: " + destination
+    throw "Trying to close a non-existing channel, source: " + source.id + " destination: " + destination.id
   }
 
   entity.importanceScore = 0
