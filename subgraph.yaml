@@ -1,0 +1,41 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: HoprChannels
+    network: xdai
+    source:
+      address: "0xD2F008718EEdD7aF7E9a466F5D68bb77D03B8F7A"
+      abi: HoprChannels
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Announcement
+        - ChannelBumped
+        - ChannelClosureFinalized
+        - ChannelClosureInitiated
+        - ChannelFunded
+        - ChannelOpened
+        - TicketRedeemed
+      abis:
+        - name: HoprChannels
+          file: ./abis/HoprChannels.json
+      eventHandlers:
+        - event: Announcement(indexed address,bytes,bytes)
+          handler: handleAnnouncement
+        - event: ChannelBumped(indexed address,indexed address,bytes32,uint256,uint256)
+          handler: handleChannelBumped
+        - event: ChannelClosureFinalized(indexed address,indexed address,uint32,uint256)
+          handler: handleChannelClosureFinalized
+        - event: ChannelClosureInitiated(indexed address,indexed address,uint32)
+          handler: handleChannelClosureInitiated
+        - event: ChannelFunded(indexed address,indexed address,indexed address,uint256)
+          handler: handleChannelFunded
+        - event: ChannelOpened(indexed address,indexed address)
+          handler: handleChannelOpened
+        - event: TicketRedeemed(indexed address,indexed address,bytes32,uint256,uint256,bytes32,uint256,uint256,bytes)
+          handler: handleTicketRedeemed
+      file: ./src/mapping.ts

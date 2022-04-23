@@ -1,0 +1,18 @@
+type Channel @entity {
+  id: String!
+  source: AddressNode!
+  destination: AddressNode!
+  importanceScore: Int!
+  status: ChannelStatus!
+}
+
+type AddressNode @entity {
+  id: String! 
+  hoprAddress: String!
+}
+
+enum ChannelStatus {
+  Open
+  Closed
+  Unknown
+}
