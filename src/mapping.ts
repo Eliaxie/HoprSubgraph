@@ -65,7 +65,16 @@ export function handleChannelClosureInitiated(
   event: ChannelClosureInitiated
 ): void {
 
-  let entity = getChannel(event.params.source, event.params.destination);
+  let source = AddressNode.load(event.params.source.toHex())
+  let destination = AddressNode.load(event.params.destination.toHex())
+  if (!source || !destination) {
+    throw "ChannelOpenEvent trying to use a non-existing source or destionation channel, source: " + source + " destionation: " + destination
+  }
+  let entity = Channel.load(source.id + ":%:" + destination.id)
+
+  if (!entity) {
+    throw "Trying to close a non-existing channel, source: " + source + " destination: " + destination
+  }
 
   entity.importanceScore = 0
 
@@ -78,7 +87,20 @@ export function handleChannelFunded(event: ChannelFunded): void { }
 
 export function handleChannelOpened(event: ChannelOpened): void {
 
-  let entity = getChannel(event.params.source, event.params.destination);
+  let source = AddressNode.load(event.params.source.toHex())
+  let destination = AddressNode.load(event.params.destination.toHex())
+  if (!source || !destination) {
+    throw "ChannelOpenEvent trying to use a non-existing source or destionation channel, source: " + source + " destination: " + destination
+  }
+  let entity = Channel.load(source.id + ":%:" + destination.id)
+
+  if (!entity) {
+    entity = new Channel(source.id + ":%:" + destination.id)
+  }
+
+  entity.source = source.id
+
+  entity.destination = destination.id
 
   entity.importanceScore = 0
 
@@ -88,21 +110,3 @@ export function handleChannelOpened(event: ChannelOpened): void {
 }
 
 export function handleTicketRedeemed(event: TicketRedeemed): void { }
-
-
-function getChannel(sourceAddr: Address, destinationAddr: Address): Channel {
-
-  let source = AddressNode.load(sourceAddr.toHex())
-  let destination = AddressNode.load(destinationAddr.toHex())
-  if (!source || !destination) {
-    throw "ChannelOpenEvent trying to use a non-existing source or destionation channel, source: " + source + " destionation: " + destination
-  }
-  let entity = Channel.load(source?.id + ":%:" + destination?.id)
-
-  if (!entity) {
-    entity = new Channel(source?.id + ":%:" + destination?.id)
-  }
-
-  return entity
-}
-
