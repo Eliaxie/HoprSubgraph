@@ -1,4 +1,5 @@
 import { Address, BigInt } from "@graphprotocol/graph-ts"
+import { log } from '@graphprotocol/graph-ts'
 import {
   HoprChannels,
   Announcement,
@@ -68,12 +69,24 @@ export function handleChannelClosureInitiated(
   let source = AddressNode.load(event.params.source.toHex())
   let destination = AddressNode.load(event.params.destination.toHex())
   if (!source || !destination) {
-    throw "ChannelOpenEvent trying to use a non-existing source or destionation channel, source: " + source + " destionation: " + destination
+    throw "ChannelOpenEvent trying to use a non-existing source or destionation address, source: " + source + " destionation: " + destination
   }
   let entity = Channel.load(source.id + ":%:" + destination.id)
 
   if (!entity) {
-    throw "Trying to close a non-existing channel, source: " + source.id + " destination: " + destination.id
+    log.error('Trying to close a non-existing channel: source {}, destionation: {}', [source.id, destination.id])
+
+    entity = new Channel(source.id + ":%:" + destination.id)
+
+    entity.source = source.id
+
+    entity.destination = destination.id
+
+    entity.importanceScore = 0
+
+    entity.status = "Unknown"
+
+    entity.save()
   }
 
   entity.importanceScore = 0
@@ -90,9 +103,14 @@ export function handleChannelOpened(event: ChannelOpened): void {
   let source = AddressNode.load(event.params.source.toHex())
   let destination = AddressNode.load(event.params.destination.toHex())
   if (!source || !destination) {
-    throw "ChannelOpenEvent trying to use a non-existing source or destionation channel, source: " + source + " destination: " + destination
+    throw "ChannelOpenEvent trying to use a non-existing source or destionation address, source: " + source + " destination: " + destination
   }
   let entity = Channel.load(source.id + ":%:" + destination.id)
+
+  if (entity && entity.status == "Unknown") {
+    log.error('Trying to open a previously broken channel: source {}, destionation: {}', [source.id, destination.id])
+    return
+  }
 
   if (!entity) {
     entity = new Channel(source.id + ":%:" + destination.id)
