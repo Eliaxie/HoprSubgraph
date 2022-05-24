@@ -10,50 +10,22 @@ import {
   ChannelOpened,
   TicketRedeemed
 } from "../generated/HoprChannels/HoprChannels"
-import { Channel, AddressNode } from "../generated/schema"
+import { Channel, Account, Ticket } from "../generated/schema"
+import { convertEthToDecimal, getChannelId, getOrInitiateAccount, initiateChannel, oneBigInt } from "./library"
 
 export function handleAnnouncement(event: Announcement): void {
-  // Entities can be loaded from the store using a string ID; this ID
-  // needs to be unique across all entities of the same type
-  let entity = AddressNode.load(event.params.account.toHex())
+  log.info(`[ info ] Address of the account announcing itself: {}`, [event.params.account.toHex()]);
+  let accountId = event.params.account.toHex();
+  let account = getOrInitiateAccount(accountId)
+  let multiaddr = account.multiaddr
 
-  // Entities only exist after they have been saved to the store;
-  // `null` checks allow to create entities on demand
-  if (!entity) {
-    entity = new AddressNode(event.params.account.toHex())
-
-    // Entity fields can be set using simple assignments
+  if (multiaddr.indexOf(event.params.multiaddr) == -1) {
+    multiaddr.push(event.params.multiaddr)
   }
-
-  // BigInt and BigDecimal math are supported
-  entity.hoprAddress = event.params.multiaddr.toBase58()
-
-  // Entities can be written to the store with `.save()`
-  entity.save()
-
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
-
-  // It is also possible to access smart contracts from mappings. For
-  // example, the contract that has emitted the event can be connected to
-  // with:
-  //
-  // let contract = Contract.bind(event.address)
-  //
-  // The following functions can then be called on this contract to access
-  // state variables and other data:
-  //
-  // - contract.FUND_CHANNEL_MULTI_SIZE(...)
-  // - contract.TOKENS_RECIPIENT_INTERFACE_HASH(...)
-  // - contract.canImplementInterfaceForAddress(...)
-  // - contract.channels(...)
-  // - contract.multicall(...)
-  // - contract.publicKeys(...)
-  // - contract.secsClosure(...)
-  // - contract.token(...)
+  account.multiaddr = multiaddr
+  account.publicKey = event.params.publicKey;
+  account.hasAnnounced = true;
+  account.save()
 }
 
 export function handleChannelBumped(event: ChannelBumped): void { }
@@ -65,66 +37,91 @@ export function handleChannelClosureFinalized(
 export function handleChannelClosureInitiated(
   event: ChannelClosureInitiated
 ): void {
+  log.info(`[ info ] Handle channel update: start {}`, [event.transaction.hash.toHex()]);
+  // channel source
+  let sourceId = event.params.source.toHex();
+  let source = getOrInitiateAccount(sourceId)
+  log.info(`[ info ] Handle channel update: source {}`, [event.transaction.hash.toHex()]);
 
-  let source = AddressNode.load(event.params.source.toHex())
-  let destination = AddressNode.load(event.params.destination.toHex())
-  if (!source || !destination) {
-    throw "ChannelOpenEvent trying to use a non-existing source or destionation address, source: " + source + " destionation: " + destination
-  }
-  let entity = Channel.load(source.id + ":%:" + destination.id)
+  // channel destination
+  let destinationId = event.params.destination.toHex();
+  let destination = getOrInitiateAccount(destinationId)
+  log.info(`[ info ] Handle channel update: destination {}`, [event.transaction.hash.toHex()]);
 
-  if (!entity) {
-    log.error('Trying to close a non-existing channel: source {}, destionation: {}', [source.id, destination.id])
 
-    entity = new Channel(source.id + ":%:" + destination.id)
-
-    entity.source = source.id
-
-    entity.destination = destination.id
-
-    entity.importanceScore = 0
-
-    entity.status = "Unknown"
-
-    entity.save()
+  let channelId = getChannelId(event.params.source, event.params.destination).toHex()
+  let channel = Channel.load(channelId)
+  log.info(`[ info ] Address of the account updating the channel: {}`, [channelId]);
+  if (channel == null) {
+    log.error('Trying to close a non-open channel: {}', [channelId])
+    return;
   }
 
-  entity.importanceScore = 0
+  channel.status = "CLOSED"
 
-  entity.status = "Closed"
-
-  entity.save()
+  source.save();
+  channel.save();
 }
 
 export function handleChannelFunded(event: ChannelFunded): void { }
 
 export function handleChannelOpened(event: ChannelOpened): void {
+  log.info(`[ info ] Handle channel update: start {}`, [event.transaction.hash.toHex()]);
+  // channel source
+  let sourceId = event.params.source.toHex();
+  let source = getOrInitiateAccount(sourceId)
+  log.info(`[ info ] Handle channel update: source {}`, [event.transaction.hash.toHex()]);
 
-  let source = AddressNode.load(event.params.source.toHex())
-  let destination = AddressNode.load(event.params.destination.toHex())
-  if (!source || !destination) {
-    throw "ChannelOpenEvent trying to use a non-existing source or destionation address, source: " + source + " destination: " + destination
+  // channel destination
+  let destinationId = event.params.destination.toHex();
+  let destination = getOrInitiateAccount(destinationId)
+  log.info(`[ info ] Handle channel update: destination {}`, [event.transaction.hash.toHex()]);
+
+
+  let channelId = getChannelId(event.params.source, event.params.destination).toHex()
+  let channel = Channel.load(channelId)
+  log.info(`[ info ] Address of the account updating the channel: {}`, [channelId]);
+  if (channel == null) {
+    // update channel count
+    log.info('New channel', [])
+    source.fromChannelsCount = source.fromChannelsCount.plus(oneBigInt())
+    destination.toChannelsCount = destination.toChannelsCount.plus(oneBigInt())
+    destination.save();
+    channel = initiateChannel(channelId, sourceId, destinationId)
   }
-  let entity = Channel.load(source.id + ":%:" + destination.id)
 
-  if (entity && entity.status == "Unknown") {
-    log.error('Trying to open a previously broken channel: source {}, destionation: {}', [source.id, destination.id])
-    return
-  }
+  channel.status = "OPEN"
 
-  if (!entity) {
-    entity = new Channel(source.id + ":%:" + destination.id)
-  }
-
-  entity.source = source.id
-
-  entity.destination = destination.id
-
-  entity.importanceScore = 0
-
-  entity.status = "Open"
-
-  entity.save()
+  source.save();
+  channel.save();
 }
 
-export function handleTicketRedeemed(event: TicketRedeemed): void { }
+export function handleTicketRedeemed(event: TicketRedeemed): void {
+  // get the channel epoch, which is not part of the event
+  let channelContract = HoprChannels.bind(event.address)
+  let channelId = getChannelId(event.params.source, event.params.destination);
+  let channelEpoch = channelContract.channels(channelId).value5
+  let ticketEpoch = event.params.ticketEpoch
+  let ticketIndex = event.params.ticketIndex
+  // create new ticket
+  let ticketId = channelId.toHex() + "-" + channelEpoch.toString() + "-" + ticketEpoch.toString() + "-" + ticketIndex.toString()
+  let ticket = new Ticket(ticketId)
+  ticket.channel = channelId.toHex()
+  ticket.nextCommitment = event.params.nextCommitment
+  ticket.ticketEpoch = ticketEpoch
+  ticket.ticketIndex = ticketIndex
+  ticket.proofOfRelaySecret = event.params.proofOfRelaySecret
+  ticket.amount = convertEthToDecimal(event.params.amount)
+  ticket.winProb = event.params.winProb
+  ticket.signature = event.params.signature
+  // update channel
+  let channel = Channel.load(channelId.toHex())
+  if (channel == null) {
+    log.error("Redeem a ticket for non-existing channel", [])
+    return
+  } else {
+    channel.redeemedTicketCount = channel.redeemedTicketCount.plus(oneBigInt())
+  }
+  channel.save()
+  ticket.save()
+}

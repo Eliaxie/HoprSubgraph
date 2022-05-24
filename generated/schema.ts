@@ -11,6 +11,239 @@ import {
   BigDecimal
 } from "@graphprotocol/graph-ts";
 
+export class Account extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+
+    this.set("multiaddr", Value.fromBytesArray(new Array(0)));
+    this.set("fromChannelsCount", Value.fromBigInt(BigInt.zero()));
+    this.set("toChannelsCount", Value.fromBigInt(BigInt.zero()));
+    this.set("hasAnnounced", Value.fromBoolean(false));
+    this.set("balance", Value.fromBigDecimal(BigDecimal.zero()));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save Account entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.STRING,
+        "Cannot save Account entity with non-string ID. " +
+          'Considering using .toHex() to convert the "id" to a string.'
+      );
+      store.set("Account", id.toString(), this);
+    }
+  }
+
+  static load(id: string): Account | null {
+    return changetype<Account | null>(store.get("Account", id));
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value!.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get publicKey(): Bytes | null {
+    let value = this.get("publicKey");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set publicKey(value: Bytes | null) {
+    if (!value) {
+      this.unset("publicKey");
+    } else {
+      this.set("publicKey", Value.fromBytes(<Bytes>value));
+    }
+  }
+
+  get multiaddr(): Array<Bytes> {
+    let value = this.get("multiaddr");
+    return value!.toBytesArray();
+  }
+
+  set multiaddr(value: Array<Bytes>) {
+    this.set("multiaddr", Value.fromBytesArray(value));
+  }
+
+  get fromChannels(): Array<string> {
+    let value = this.get("fromChannels");
+    return value!.toStringArray();
+  }
+
+  set fromChannels(value: Array<string>) {
+    this.set("fromChannels", Value.fromStringArray(value));
+  }
+
+  get toChannels(): Array<string> {
+    let value = this.get("toChannels");
+    return value!.toStringArray();
+  }
+
+  set toChannels(value: Array<string>) {
+    this.set("toChannels", Value.fromStringArray(value));
+  }
+
+  get fromChannelsCount(): BigInt {
+    let value = this.get("fromChannelsCount");
+    return value!.toBigInt();
+  }
+
+  set fromChannelsCount(value: BigInt) {
+    this.set("fromChannelsCount", Value.fromBigInt(value));
+  }
+
+  get toChannelsCount(): BigInt {
+    let value = this.get("toChannelsCount");
+    return value!.toBigInt();
+  }
+
+  set toChannelsCount(value: BigInt) {
+    this.set("toChannelsCount", Value.fromBigInt(value));
+  }
+
+  get hasAnnounced(): boolean {
+    let value = this.get("hasAnnounced");
+    return value!.toBoolean();
+  }
+
+  set hasAnnounced(value: boolean) {
+    this.set("hasAnnounced", Value.fromBoolean(value));
+  }
+
+  get balance(): BigDecimal {
+    let value = this.get("balance");
+    return value!.toBigDecimal();
+  }
+
+  set balance(value: BigDecimal) {
+    this.set("balance", Value.fromBigDecimal(value));
+  }
+}
+
+export class Ticket extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+
+    this.set("channel", Value.fromString(""));
+    this.set("nextCommitment", Value.fromBytes(Bytes.empty()));
+    this.set("ticketEpoch", Value.fromBigInt(BigInt.zero()));
+    this.set("ticketIndex", Value.fromBigInt(BigInt.zero()));
+    this.set("proofOfRelaySecret", Value.fromBytes(Bytes.empty()));
+    this.set("amount", Value.fromBigDecimal(BigDecimal.zero()));
+    this.set("winProb", Value.fromBigInt(BigInt.zero()));
+    this.set("signature", Value.fromBytes(Bytes.empty()));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save Ticket entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.STRING,
+        "Cannot save Ticket entity with non-string ID. " +
+          'Considering using .toHex() to convert the "id" to a string.'
+      );
+      store.set("Ticket", id.toString(), this);
+    }
+  }
+
+  static load(id: string): Ticket | null {
+    return changetype<Ticket | null>(store.get("Ticket", id));
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value!.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get channel(): string {
+    let value = this.get("channel");
+    return value!.toString();
+  }
+
+  set channel(value: string) {
+    this.set("channel", Value.fromString(value));
+  }
+
+  get nextCommitment(): Bytes {
+    let value = this.get("nextCommitment");
+    return value!.toBytes();
+  }
+
+  set nextCommitment(value: Bytes) {
+    this.set("nextCommitment", Value.fromBytes(value));
+  }
+
+  get ticketEpoch(): BigInt {
+    let value = this.get("ticketEpoch");
+    return value!.toBigInt();
+  }
+
+  set ticketEpoch(value: BigInt) {
+    this.set("ticketEpoch", Value.fromBigInt(value));
+  }
+
+  get ticketIndex(): BigInt {
+    let value = this.get("ticketIndex");
+    return value!.toBigInt();
+  }
+
+  set ticketIndex(value: BigInt) {
+    this.set("ticketIndex", Value.fromBigInt(value));
+  }
+
+  get proofOfRelaySecret(): Bytes {
+    let value = this.get("proofOfRelaySecret");
+    return value!.toBytes();
+  }
+
+  set proofOfRelaySecret(value: Bytes) {
+    this.set("proofOfRelaySecret", Value.fromBytes(value));
+  }
+
+  get amount(): BigDecimal {
+    let value = this.get("amount");
+    return value!.toBigDecimal();
+  }
+
+  set amount(value: BigDecimal) {
+    this.set("amount", Value.fromBigDecimal(value));
+  }
+
+  get winProb(): BigInt {
+    let value = this.get("winProb");
+    return value!.toBigInt();
+  }
+
+  set winProb(value: BigInt) {
+    this.set("winProb", Value.fromBigInt(value));
+  }
+
+  get signature(): Bytes {
+    let value = this.get("signature");
+    return value!.toBytes();
+  }
+
+  set signature(value: Bytes) {
+    this.set("signature", Value.fromBytes(value));
+  }
+}
+
 export class Channel extends Entity {
   constructor(id: string) {
     super();
@@ -18,8 +251,11 @@ export class Channel extends Entity {
 
     this.set("source", Value.fromString(""));
     this.set("destination", Value.fromString(""));
-    this.set("importanceScore", Value.fromI32(0));
+    this.set("balance", Value.fromBigDecimal(BigDecimal.zero()));
+    this.set("commitment", Value.fromBytes(Bytes.empty()));
+    this.set("channelEpoch", Value.fromBigInt(BigInt.zero()));
     this.set("status", Value.fromString(""));
+    this.set("redeemedTicketCount", Value.fromBigInt(BigInt.zero()));
   }
 
   save(): void {
@@ -28,7 +264,8 @@ export class Channel extends Entity {
     if (id) {
       assert(
         id.kind == ValueKind.STRING,
-        `Entities of type Channel must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`
+        "Cannot save Channel entity with non-string ID. " +
+          'Considering using .toHex() to convert the "id" to a string.'
       );
       store.set("Channel", id.toString(), this);
     }
@@ -65,13 +302,31 @@ export class Channel extends Entity {
     this.set("destination", Value.fromString(value));
   }
 
-  get importanceScore(): i32 {
-    let value = this.get("importanceScore");
-    return value!.toI32();
+  get balance(): BigDecimal {
+    let value = this.get("balance");
+    return value!.toBigDecimal();
   }
 
-  set importanceScore(value: i32) {
-    this.set("importanceScore", Value.fromI32(value));
+  set balance(value: BigDecimal) {
+    this.set("balance", Value.fromBigDecimal(value));
+  }
+
+  get commitment(): Bytes {
+    let value = this.get("commitment");
+    return value!.toBytes();
+  }
+
+  set commitment(value: Bytes) {
+    this.set("commitment", Value.fromBytes(value));
+  }
+
+  get channelEpoch(): BigInt {
+    let value = this.get("channelEpoch");
+    return value!.toBigInt();
+  }
+
+  set channelEpoch(value: BigInt) {
+    this.set("channelEpoch", Value.fromBigInt(value));
   }
 
   get status(): string {
@@ -82,47 +337,13 @@ export class Channel extends Entity {
   set status(value: string) {
     this.set("status", Value.fromString(value));
   }
-}
 
-export class AddressNode extends Entity {
-  constructor(id: string) {
-    super();
-    this.set("id", Value.fromString(id));
-
-    this.set("hoprAddress", Value.fromString(""));
+  get redeemedTicketCount(): BigInt {
+    let value = this.get("redeemedTicketCount");
+    return value!.toBigInt();
   }
 
-  save(): void {
-    let id = this.get("id");
-    assert(id != null, "Cannot save AddressNode entity without an ID");
-    if (id) {
-      assert(
-        id.kind == ValueKind.STRING,
-        `Entities of type AddressNode must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`
-      );
-      store.set("AddressNode", id.toString(), this);
-    }
-  }
-
-  static load(id: string): AddressNode | null {
-    return changetype<AddressNode | null>(store.get("AddressNode", id));
-  }
-
-  get id(): string {
-    let value = this.get("id");
-    return value!.toString();
-  }
-
-  set id(value: string) {
-    this.set("id", Value.fromString(value));
-  }
-
-  get hoprAddress(): string {
-    let value = this.get("hoprAddress");
-    return value!.toString();
-  }
-
-  set hoprAddress(value: string) {
-    this.set("hoprAddress", Value.fromString(value));
+  set redeemedTicketCount(value: BigInt) {
+    this.set("redeemedTicketCount", Value.fromBigInt(value));
   }
 }
